@@ -17,17 +17,36 @@ ADDONS = {}
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "restaurant_scraper (+http://www.yourdomain.com)"
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
+
+# Default headers that a real browser sends
+DEFAULT_REQUEST_HEADERS = {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9,it;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'DNT': '1',  # Do Not Track
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+}
+
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
 
+
+# Retry on failure (real users refresh pages)
+RETRY_TIMES = 3
+RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429, 403]
+
+
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
-DOWNLOAD_DELAY = 1
+DOWNLOAD_DELAY = 5
 
 # Disable cookies (enabled by default)
-#COOKIES_ENABLED = False
+COOKIES_ENABLED = True
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
@@ -58,9 +77,7 @@ DOWNLOAD_DELAY = 1
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "restaurant_scraper.pipelines.RestaurantScraperPipeline": 300,
-#}
+ITEM_PIPELINES = {"restaurant_scraper.pipelines.PostgresPipeline": 300,}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
