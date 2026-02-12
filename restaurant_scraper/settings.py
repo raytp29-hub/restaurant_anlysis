@@ -16,33 +16,41 @@ ADDONS = {}
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
+# Disable default user agent - we'll use random rotation
 #USER_AGENT = "restaurant_scraper (+http://www.yourdomain.com)"
-USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+# USER_AGENT will be set by RandomUserAgentMiddleware below
 
 
-# Default headers that a real browser sends
+# Enhanced headers to mimic real browser
 DEFAULT_REQUEST_HEADERS = {
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
     'Accept-Language': 'en-US,en;q=0.9,it;q=0.8',
     'Accept-Encoding': 'gzip, deflate, br',
-    'DNT': '1',  # Do Not Track
+    'DNT': '1',
     'Connection': 'keep-alive',
     'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Cache-Control': 'max-age=0',
 }
 
 
-# Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+# Disable robots.txt to bypass blocking (use responsibly!)
+ROBOTSTXT_OBEY = False
 
 
 # Retry on failure (real users refresh pages)
-RETRY_TIMES = 3
+# Increased to 6 because TripAdvisor allows requests after ~5 attempts
+RETRY_TIMES = 5
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429, 403]
 
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
+# Increased delay to appear more human-like
 DOWNLOAD_DELAY = 5
 
 # Disable cookies (enabled by default)
@@ -62,6 +70,12 @@ COOKIES_ENABLED = True
 #SPIDER_MIDDLEWARES = {
 #    "restaurant_scraper.middlewares.RestaurantScraperSpiderMiddleware": 543,
 #}
+
+# Random User Agent rotation
+DOWNLOADER_MIDDLEWARES = {
+    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
+    'scrapy_user_agents.middlewares.RandomUserAgentMiddleware': 400,
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html

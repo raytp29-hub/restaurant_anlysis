@@ -2,7 +2,7 @@
 SQLAlchemy ORM models for restaurant scraper database
 Each class represents a table in PostgreSQL
 """
-from sqlalchemy import Column, Integer, String, Text, Numeric, Boolean, DateTime, ForeignKey, Date
+from sqlalchemy import Column, Float, Integer, String, Text, Numeric, Boolean, DateTime, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .connection import Base
@@ -36,7 +36,11 @@ class Restaurant(Base):
     
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    
+    
+    cuisines = relationship("CuisineType", secondary="restaurant_cuisines", back_populates="restaurants")
     
     
     
@@ -46,8 +50,48 @@ class Restaurant(Base):
     scrape_logs = relationship("ScrapeMetadata", back_populates="restaurant", cascade="all, delete-orphan")
     
     
+    
+    
+    
+    
     def __repr__(self):
         return f"<Restaurant(id={self.id}, name='{self.name}', city='{self.city}')>"
+    
+    
+    
+    
+class CuisineType(Base):
+    
+    __tablename__ = 'cuisine_types'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False, unique=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())    
+    
+    # relationship
+    restaurants = relationship("Restaurant", secondary="restaurant_cuisines", back_populates="cuisines")
+    
+    def __repr__(self):
+        return f"<CuisineType(id{self.id} name='{self.name}')>"
+    
+    
+    
+class RestaurantCuisine(Base):
+    __tablename__ = 'restaurant_cuisines'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    restaurant_id = Column(Integer, ForeignKey('restaurants.id', ondelete='CASCADE'), nullable=False)
+    cuisine_type_id = Column(Integer, ForeignKey('cuisine_types.id', ondelete='CASCADE'), nullable=False)
+    
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    
+    def __repr__(self):
+        return f"<RestaurantCuisine(restaurant_id={self.restaurant_id}, cuisine_id={self.cuisine_type_id})>"    
+    
+    
     
     
     
@@ -68,6 +112,8 @@ class MenuItem(Base):
     
     # Timestamp
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
     
     # Relationship (many-to-one)
     restaurant = relationship("Restaurant", back_populates="menu_items")
@@ -93,10 +139,13 @@ class Review(Base):
     rating = Column(Integer)  # 1 to 5
     review_date = Column(Date)
     reviewer_name = Column(String(255))
+    sentiment_score = Column(Float, nullable=True)
     source = Column(String(50))  # 'tripadvisor', 'thefork'
     
     # Timestamp
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
     
     # Relationship (many-to-one)
     restaurant = relationship("Restaurant", back_populates="reviews")
@@ -121,7 +170,10 @@ class ScrapeMetadata(Base):
     scrape_date = Column(DateTime(timezone=True), server_default=func.now())
     source = Column(String(50))
     status = Column(String(50))  # 'success', 'partial', 'failed'
+    restaurants_scraped = Column(Integer, default=0)
     items_scraped = Column(Integer, default=0)
+    reviews_scraped = Column(Integer, default=0)
+    errors_encountered = Column(Integer, default=0)
     errors = Column(Text)
     
     # Relationship (many-to-one)
