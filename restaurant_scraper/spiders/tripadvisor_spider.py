@@ -57,7 +57,7 @@ class TripAdvisorSpider(scrapy.Spider):
         self.logger.info(f"Found {len(unique_links)} restaurant links")
         
         # Follow each restaurant link to get detailed info
-        for link in unique_links[:30]:  # Limit to first 30 for testing
+        for link in unique_links[:100]:  # Limit to first 30 for testing
             full_url = response.urljoin(link)
             yield scrapy.Request(
                 url=full_url,
