@@ -81,10 +81,12 @@ class TripAdvisorSpider(scrapy.Spider):
         rating = response.css('[data-automation="bubbleRatingValue"] span::text').get()
         
         # Extract review count - prova selettore alternativo
-        review_text = response.css('span.biGQs._P.ezezH::text').get()
+        review_texts = response.css('div.biGQs._P.SewaP.kSNRl.KeZJf::text').getall()
         review_count = None
-        if review_text:
-            match = re.search(r'(\d+)', review_text)
+        if review_texts:
+            full_text = ''.join(review_texts)
+            full_text = full_text.replace(',', '')
+            match = re.search(r'(\d+)', full_text)
             if match:
                 review_count = int(match.group(1))
 
