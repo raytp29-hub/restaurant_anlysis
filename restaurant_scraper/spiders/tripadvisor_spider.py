@@ -17,6 +17,8 @@ class TripAdvisorSpider(scrapy.Spider):
     def __init__(self, city="Catania", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.city = city
+        self.pages_scraped = 0
+        self.max_pages = 2
         
     def start_requests(self):
         """Use Playwright for the initial request"""
@@ -57,7 +59,7 @@ class TripAdvisorSpider(scrapy.Spider):
         self.logger.info(f"Found {len(unique_links)} restaurant links")
         
         # Follow each restaurant link to get detailed info
-        for link in unique_links[:100]:  # Limit to first 30 for testing
+        for link in unique_links[:10]:
             full_url = response.urljoin(link)
             yield scrapy.Request(
                 url=full_url,
@@ -66,6 +68,23 @@ class TripAdvisorSpider(scrapy.Spider):
                 errback=self.handle_error
             )
     
+   
+        
+        
+        self.pages_scraped += 1
+        self.logger.info(f"📄 Page {self.pages_scraped} of {self.max_pages} completed")
+        
+        if self.pages_scraped < self.max_pages:
+            next_page = response.css('a[data-smoke-attr="pagination-next-arrow"]::attr(href)').get()
+        
+            if next_page:
+                next_url = response.urljoin(next_page)
+                self.logger.info(f"Going to next page: {next_url}")
+                yield scrapy.Request(
+                    url=next_url,
+                    meta={"playwright":True},
+                    callback=self.parse
+                )
     
     def parse_restaurant_detail(self, response):
         """
@@ -127,6 +146,33 @@ class TripAdvisorSpider(scrapy.Spider):
         # Log what we found
         self.logger.info(f"✅ Scraped: {name} - Rating: {rating} ({review_count} reviews) - Cuisines: {cuisines}")
         
+        
+        # Controlla se esiste il bottone menu
+        menu_button = response.css('button[data-automation="restaurantsMenuButton"]')
+
+        
+        if menu_button:
+            self.logger.info(f"🍽️ Menu found for {name}, fetching...")
+            yield scrapy.Request(
+                url=response.url,
+                meta={
+                    "playwright": True,
+                    "playwright_page_methods": [
+                        # Rimuovi TUTTI gli overlay possibili
+                        PageMethod("evaluate", """
+                            document.querySelectorAll('#onetrust-consent-sdk, .onetrust-pc-dark-filter, [class*="onetrust"]').forEach(el => el.remove());
+                        """),
+                        PageMethod("wait_for_timeout", 500),
+                        PageMethod("click", "button[data-automation='restaurantsMenuButton']"),
+                        PageMethod("wait_for_selector", "div.Jyhuy", timeout=5000),
+                    ],
+                    "restaurant_name": name,
+                },
+                callback=self.parse_menu,
+                errback=self.handle_error,
+                dont_filter=True,
+            )
+        
         # Yield the data
         yield {
             'name': name,
@@ -149,3 +195,32 @@ class TripAdvisorSpider(scrapy.Spider):
         self.logger.error(f"Error: {failure.value}")
 
 
+    def parse_menu(self, response):
+        """Extract menu items from restaurant"""
+        restaurant_name = response.meta.get('restaurant_name')
+        self.logger.info(f"🍽️ Parsing menu for {restaurant_name}")
+        
+        items = response.css('div.Jyhuy')
+        self.logger.info(f"Found {len(items)} menu items")  # Debug
+        
+        for item in items:
+            name = item.css('div.biGQs._P.SewaP.OgHoE::text').get()
+            price_text = item.css('div.ksfIO div.biGQs._P.VImYz.AWdfh::text').get()
+            
+            # Pulisci il prezzo (rimuovi € e converti in numero)
+            price = None
+            if price_text:
+                price_clean = price_text.replace('€', '').replace(',', '.').strip()
+                try:
+                    price = float(price_clean)
+                except ValueError:
+                    price = None
+            
+            self.logger.info(f"DEBUG - Name: {name}, Price: {price}")
+            
+            if name:
+                yield {
+                    "dish_name": name,
+                    "price": price,
+                    "restaurant_url": response.url,
+                }
