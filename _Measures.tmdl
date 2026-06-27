@@ -1,0 +1,103 @@
+table _Measures
+
+	column 'Colonna 1'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: 'Colonna 1'
+
+		annotation SummarizationSetBy = Automatic
+
+	measure 'Total Restaurants' = DISTINCTCOUNT(dim_restaurant[restaurant_id])
+		formatString: 0
+		lineageTag: fe78328c-25e9-40ae-9635-c51df2a511cf
+
+	measure 'Total Menu Items' = COUNTROWS(fact_menu)
+		formatString: 0
+		lineageTag: b5a2973a-1bd8-4773-b7ae-ea0249ab7a92
+
+	measure 'Total Cuisines' = DISTINCTCOUNT(dim_cuisine[cuisine_id])
+		formatString: 0
+		lineageTag: 3e1cd416-3400-42d2-a412-ff978d0d3da9
+
+	measure 'Restaurants With Menu' =
+			CALCULATE(
+			    DISTINCTCOUNT(dim_restaurant[restaurant_id]),
+			    fact_menu[restaurant_id] <> BLANK()
+			)
+		formatString: 0
+		lineageTag: 551b7dd7-7a8f-4288-a195-da2a8c49b451
+
+	measure 'Avg Rating' = AVERAGE(dim_restaurant[rating_avg])
+		lineageTag: 87f56e77-f57e-4f5c-aee0-96c34644f2e1
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Reviews' = SUM(dim_restaurant[total_reviews])
+		formatString: 0
+		lineageTag: 486b723e-2267-4b76-983c-a84532fe3cf4
+
+	measure 'Avg Reviews per Restaurant' = DIVIDE([Total Reviews], [Total Restaurants])
+		lineageTag: 678a54ed-5ae4-4f86-9d9b-60e952922533
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Avg Dish Price' = AVERAGE(fact_menu[price])
+		formatString: "€"\ #,0.00;-"€"\ #,0.00;"€"\ #,0.00
+		lineageTag: 0142adfb-b806-4b11-b553-90059d29f7f3
+
+	measure 'Min Dish Price' = MIN(fact_menu[price])
+		lineageTag: d394bde6-deda-42b4-83bd-887d9e0ae034
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Max Dish Price' = MAX(fact_menu[price])
+		lineageTag: 714ca8ee-d948-469d-92a4-054efad5f46b
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Median Dish Price' = MEDIAN(fact_menu[price])
+		lineageTag: fc976d11-af68-4f3d-a59d-bee8f1982928
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Geocoded Restaurants' =
+			CALCULATE(
+			    [Total Restaurants],
+			    dim_restaurant[has_geocoding] = "Yes"
+			)
+		formatString: 0
+		lineageTag: 3da65c72-19d7-4a45-97d4-f458033584c4
+
+	measure 'Geocoding Coverage %' = DIVIDE([Geocoded Restaurants], [Total Restaurants])
+		lineageTag: afce8eab-da0b-4fe9-96bc-ef716d869074
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Top Rated Threshold' = 4.5
+		lineageTag: 75404bd3-5e2f-479b-8f66-ee5135bb9a41
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Top Rated Restaurants' =
+			VAR Threshold = [Top Rated Threshold]
+			RETURN
+			CALCULATE(
+			    [Total Restaurants],
+			    FILTER(
+			        ALL(dim_restaurant[rating_avg]),
+			        dim_restaurant[rating_avg] >= Threshold
+			    )
+			)
+		formatString: 0
+		lineageTag: 3d3f2e25-675f-40da-8e5e-a4d4a9cd0bdd
+
+	measure '% Top Rated' = ```
+			VAR TopRated = 
+			    CALCULATE(
+			        DISTINCTCOUNT(dim_restaurant[restaurant_id]),
+			        dim_restaurant[rating_avg] >= 4.5
+			    )
+			VAR Total = 
+			    DISTINCTCOUNT(dim_restaurant[restaurant_id])
+			RETURN
+			    DIVIDE(TopRated, Total)
