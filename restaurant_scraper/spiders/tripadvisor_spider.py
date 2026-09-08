@@ -18,7 +18,7 @@ class TripAdvisorSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         self.city = city
         self.pages_scraped = 0
-        self.max_pages = 2
+        self.max_pages = 5
         
     def start_requests(self):
         """Use Playwright for the initial request"""
@@ -59,7 +59,7 @@ class TripAdvisorSpider(scrapy.Spider):
         self.logger.info(f"Found {len(unique_links)} restaurant links")
         
         # Follow each restaurant link to get detailed info
-        for link in unique_links[:10]:
+        for link in unique_links[:100]:
             full_url = response.urljoin(link)
             yield scrapy.Request(
                 url=full_url,
@@ -135,7 +135,7 @@ class TripAdvisorSpider(scrapy.Spider):
         website = response.css('a[data-automation="restaurantsWebsiteButton"]::attr(href)').get()
         
         # Extract address (usually in popup, may be None)
-        address = response.css('[data-automation="restaurantAddress"]::text').get()
+        address = response.css('[data-automation="restaurantsMapLinkOnName"]::text').get()
         
         # Extract phone from href
         phone_href = response.css('a[href^="tel:"]::attr(href)').get()
