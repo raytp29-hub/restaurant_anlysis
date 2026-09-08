@@ -1,4 +1,4 @@
-# 🍽️ Catania Restaurant Market Analysis
+# Catania Restaurant Market Analysis
 
 End-to-end market intelligence pipeline for Catania's restaurant sector — from automated web scraping to an interactive Power BI dashboard.
 
